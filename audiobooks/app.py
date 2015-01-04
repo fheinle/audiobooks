@@ -67,7 +67,10 @@ def write_csv(output_fname, tracks):
         for track in tracks:
             track_writer.writerow(
                 [track.disc_track[0], track.disc_track[1],
-                 track.title.encode('utf-8'), track.duration]
+                 track.fname,
+                 track.title.encode('utf-8'),
+                 track.duration,
+                 ]
             )
 
 def cli_run(argv):
