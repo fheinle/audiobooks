@@ -13,6 +13,7 @@ import os
 import sys
 import glob
 import argparse
+import subprocess
 
 from math import floor
 from operator import attrgetter
@@ -20,6 +21,7 @@ from operator import attrgetter
 CHAPTER_TEMPLATE = """CHAPTER%(CHAPNUM)s=%(HOURS)02d:%(MINS)02d:%(SECS)02d
 CHAPTER%(CHAPNUM)sNAME=%(CHAPNAME)s
 """
+MERGE_COMMAND = "MP4Box"
 
 class Track(object):
     """single audio file"""
@@ -80,7 +82,7 @@ def write_csv(output_fname, tracks):
 def write_chaplist(output_fname, tracks):
     """write MP4Box compatible chapter marks file
 
-    write to output_fname, expects track list as input"""
+    writes to output_fname, expects track list as input"""
     output_lines = []
     for track_number, track in enumerate(tracks):
         mins, secs = divmod(track.duration, 60)
@@ -93,6 +95,20 @@ def write_chaplist(output_fname, tracks):
         )
     with open(output_fname, 'w') as output_file:
         output_file.writelines(output_lines)
+
+def combine_files(output_fname, tracks):
+    """combine m4a files to one big file
+
+    writes to putput_fname, expects track list as input"""
+    merge_cmd_and_args = []
+    for track in tracks:
+        merge_cmd_and_args.append('-cat')
+        merge_cmd_and_args.append(track.fname)
+    merge_cmd_and_args.insert(0, MERGE_COMMAND)
+    merge_cmd_and_args.append(output_fname)
+    merge_call = subprocess.call(merge_cmd_and_args)
+    if merge_call != 0:
+        raise RuntimeError('Merge unsuccessful')
 
 def cli_run(argv):
     """cli script"""
