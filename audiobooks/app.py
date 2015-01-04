@@ -17,6 +17,10 @@ import argparse
 from math import floor
 from operator import attrgetter
 
+CHAPTER_TEMPLATE = """CHAPTER%(CHAPNUM)s=%(HOURS)02d:%(MINS)02d:%(SECS)02d
+CHAPTER%(CHAPNUM)sNAME=%(CHAPNAME)s
+"""
+
 class Track(object):
     """single audio file"""
     def __init__(self, fname):
@@ -72,6 +76,23 @@ def write_csv(output_fname, tracks):
                  track.duration,
                  ]
             )
+
+def write_chaplist(output_fname, tracks):
+    """write MP4Box compatible chapter marks file
+
+    write to output_fname, expects track list as input"""
+    output_lines = []
+    for track_number, track in enumerate(tracks):
+        mins, secs = divmod(track.duration, 60)
+        hours, mins = divmod(mins, 60)
+        output_lines.append(
+            CHAPTER_TEMPLATE % {'CHAPNUM':track_number,
+                                 'HOURS':hours, 'MINS':mins, 'SECS':secs,
+                                 'CHAPNAME':track.title.encode('utf-8')
+                               }
+        )
+    with open(output_fname, 'w') as output_file:
+        output_file.writelines(output_lines)
 
 def cli_run(argv):
     """cli script"""
