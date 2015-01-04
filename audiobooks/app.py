@@ -22,6 +22,7 @@ CHAPTER_TEMPLATE = """CHAPTER%(CHAPNUM)s=%(HOURS)02d:%(MINS)02d:%(SECS)02d
 CHAPTER%(CHAPNUM)sNAME=%(CHAPNAME)s
 """
 MERGE_COMMAND = "MP4Box"
+CHAPS_COMMAND = "mp4chaps"
 
 class Track(object):
     """single audio file"""
@@ -96,19 +97,24 @@ def write_chaplist(output_fname, tracks):
     with open(output_fname, 'w') as output_file:
         output_file.writelines(output_lines)
 
-def combine_files(output_fname, tracks):
+def combine_files(output_fname, tracks, chaplist_fname):
     """combine m4a files to one big file
 
-    writes to putput_fname, expects track list as input"""
+    writes to output_fname, expects track list as input"""
     merge_cmd_and_args = []
     for track in tracks:
         merge_cmd_and_args.append('-cat')
         merge_cmd_and_args.append(track.fname)
     merge_cmd_and_args.insert(0, MERGE_COMMAND)
+    merge_cmd_and_args.extend(['-chap', chaplist_fname])
     merge_cmd_and_args.append(output_fname)
     merge_call = subprocess.call(merge_cmd_and_args)
     if merge_call != 0:
         raise RuntimeError('Merge unsuccessful')
+    if subprocess.call(
+        [CHAPS_COMMAND, '--convert', '--chapter-qt', output_fname]
+    ) != 0:
+        raise RuntimeError('Could not convert to QT chapter marks')
 
 def cli_run(argv):
     """cli script"""
@@ -119,7 +125,7 @@ def cli_run(argv):
     cli_args = arg_parser.parse_args(args=argv[1:])
     output_fname = os.path.join(cli_args.dir_name, 'tracks.csv')
     tracks = get_tracks(os.path.abspath(cli_args.dir_name))
-    write_csv(output_fname, tracks)
+# TODO: chain it all together
 
 def main():
     """entrypoint without arguments"""
