@@ -17,6 +17,7 @@ import subprocess
 
 from math import floor
 from operator import attrgetter
+from tempfile import mkstemp
 
 CHAPTER_TEMPLATE = """CHAPTER%(CHAPNUM)s=%(HOURS)02d:%(MINS)02d:%(SECS)02d
 CHAPTER%(CHAPNUM)sNAME=%(CHAPNAME)s
@@ -48,6 +49,18 @@ class Track(object):
         discnumber = int(self._track['discnumber'][0])
         tracknumber = int(self._track['tracknumber'][0])
         return (discnumber, tracknumber)
+
+    @cached_property
+    def album(self):
+        """get album name"""
+        track_album = self._track['album'][0]
+        return track_album
+
+    @cached_property
+    def artist(self):
+        """get artist name"""
+        track_artist = self._track['artist'][0]
+        return track_artist
 
     def __unicode__(self):
         """text representation"""
@@ -96,6 +109,7 @@ def write_chaplist(output_fname, tracks):
         )
     with open(output_fname, 'w') as output_file:
         output_file.writelines(output_lines)
+    return output_fname
 
 def combine_files(output_fname, tracks, chaplist_fname):
     """combine m4a files to one big file
@@ -115,6 +129,18 @@ def combine_files(output_fname, tracks, chaplist_fname):
         [CHAPS_COMMAND, '--convert', '--chapter-qt', output_fname]
     ) != 0:
         raise RuntimeError('Could not convert to QT chapter marks')
+    return output_fname
+
+def write_audio_metadata(output_fname, album, artist):
+    """Write album and artist information to audiobook file
+
+    changes output_fname on the fly, expects album and artist"""
+    track = EasyMP4(output_fname)
+    track['album'] = album
+    track['title'] = album
+    track['artist'] = artist
+    track.save()
+
 
 def cli_run(argv):
     """cli script"""
@@ -122,10 +148,33 @@ def cli_run(argv):
         prog=argv[0],
     )
     arg_parser.add_argument('dir_name', help='Directory to index')
+    arg_parser.add_argument('-o', '--output',
+                            help='Output filename', type=str)
     cli_args = arg_parser.parse_args(args=argv[1:])
-    output_fname = os.path.join(cli_args.dir_name, 'tracks.csv')
     tracks = get_tracks(os.path.abspath(cli_args.dir_name))
-# TODO: chain it all together
+    if cli_args.output:
+        output_fname = cli_args.output
+    else:
+        output_fname = "%s.m4b" % os.path.join(
+            cli_args.dir_name,
+            tracks[0].album.encode('utf-8')
+        )
+    chapter_fname = mkstemp(prefix='chaplist')[1]
+    try:
+        write_chaplist(chapter_fname, tracks)
+    except:
+        raise
+    try:
+        combine_files(output_fname, tracks, chapter_fname)
+    except:
+        raise
+    try:
+        write_audio_metadata(output_fname,
+                             album=tracks[0].album,
+                             artist=tracks[0].artist,
+        )
+    except:
+        raise
 
 def main():
     """entrypoint without arguments"""
