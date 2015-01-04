@@ -6,6 +6,8 @@
 write track titles and play time for chapter marks to csv file"""
 
 from mutagen.easymp4 import EasyMP4
+from mutagen.mp4 import MP4Cover, MP4
+from mutagen.mp4 import AtomDataType
 from cached_property import cached_property
 
 import csv
@@ -141,6 +143,22 @@ def write_audio_metadata(output_fname, album, artist):
     track['artist'] = artist
     track.save()
 
+def write_audio_cover(output_fname, cover_fname):
+    """Write cover image to audiobook file
+
+    changes output_fname on the fly, expects cover_fname"""
+    if cover_fname.endswith('png'):
+        picture_type = AtomDataType.PNG
+    else:
+        picture_type = AtomDataType.JPEG
+    with open(cover_fname, 'rb') as album_art_file:
+        album_art = MP4Cover(
+                        data=album_art_file.read(),
+                        imageformat=picture_type
+                    )
+    track = MP4(output_fname)
+    track['covr'] = [album_art]
+    track.save()
 
 def cli_run(argv):
     """cli script"""
@@ -150,6 +168,8 @@ def cli_run(argv):
     arg_parser.add_argument('dir_name', help='Directory to index')
     arg_parser.add_argument('-o', '--output',
                             help='Output filename', type=str)
+    arg_parser.add_argument('-c', '--cover',
+                            help='Cover filename', type=str)
     cli_args = arg_parser.parse_args(args=argv[1:])
     tracks = get_tracks(os.path.abspath(cli_args.dir_name))
     if cli_args.output:
@@ -159,6 +179,10 @@ def cli_run(argv):
             cli_args.dir_name,
             tracks[0].album.encode('utf-8')
         )
+    if cli_args.cover:
+        cover_fname = cli_args.output
+    else:
+        cover_fname = os.path.join(cli_args.dir_name, 'cover.jpg')
     chapter_fname = mkstemp(prefix='chaplist')[1]
     try:
         write_chaplist(chapter_fname, tracks)
@@ -173,6 +197,10 @@ def cli_run(argv):
                              album=tracks[0].album,
                              artist=tracks[0].artist,
         )
+    except:
+        raise
+    try:
+        write_audio_cover(output_fname, cover_fname)
     except:
         raise
 
