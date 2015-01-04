@@ -201,8 +201,8 @@ def cli_run(argv):
         raise
     try:
         write_audio_cover(output_fname, cover_fname)
-    except:
-        raise
+    except IOError:
+        print "Not adding cover image."
 
 def main():
     """entrypoint without arguments"""
