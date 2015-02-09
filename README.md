@@ -4,6 +4,10 @@ Audiobooks
 
 Cover images and album metadata such as artist, album name and chapter markings are supported.
 
+## Current status
+
+Currently it works but you'll have to be careful to fully satisfy all requirements, e.g. software dependencies and correct file metadata on your source material. In the future, those edges will be a little less rough.
+
 ## Requirements
 
  * python-mutagen
