@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """create a tracklist
@@ -49,7 +49,10 @@ class Track(object):
     def disc_track(self):
         """get disc and track number as tuple"""
         discnumber = int(self._track['discnumber'][0])
-        tracknumber = int(self._track['tracknumber'][0])
+        try:
+            tracknumber = int(self._track['tracknumber'][0])
+        except ValueError:
+            tracknumber = int(self._track['tracknumber'][0].split('/')[0])
         return (discnumber, tracknumber)
 
     @cached_property
@@ -185,17 +188,17 @@ def cli_run(argv):
         cover_fname = os.path.join(cli_args.dir_name, 'cover.jpg')
     chapter_fname = mkstemp(prefix='chaplist')[1]
     try:
-        print "Gathering chapter information"
+        print("Gathering chapter information")
         write_chaplist(chapter_fname, tracks)
     except:
         raise
     try:
-        print "Combining audio tracks"
+        print("Combining audio tracks")
         combine_files(output_fname, tracks, chapter_fname)
     except:
         raise
     try:
-        print "Writing original metadata to new audiobook"
+        print("Writing original metadata to new audiobook")
         write_audio_metadata(output_fname,
                              album=tracks[0].album,
                              artist=tracks[0].artist,
@@ -203,10 +206,10 @@ def cli_run(argv):
     except:
         raise
     try:
-        print "Adding cover image if available"
+        print("Adding cover image if available")
         write_audio_cover(output_fname, cover_fname)
     except IOError:
-        print "Not adding cover image."
+        print("Not adding cover image.")
 
 def main():
     """entrypoint without arguments"""
